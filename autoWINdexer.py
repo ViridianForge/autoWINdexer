@@ -45,7 +45,7 @@ dataLoc = {
 #Functions
 
 #Main driver here
-def collateData(dataLocs, queries, options):
+def collateAlbums(dataLocs, queries, options):
 	"""
 	Function that pulls together all the data from a query
 	
@@ -83,6 +83,21 @@ def collateData(dataLocs, queries, options):
 	#Return the awesome stuff
 	return albumURLs
 
+def collateAlbum(albumURL, fields):
+    """
+    Function that pulls the relevant fields that we care about from an Album's website.
+
+    Parameters
+    _________
+    albumURL: the URL to scrape for album data
+    fields: the Fields to scrape for, provided they exist
+    """
+    
+    sourceData = requests.get(albumURL)
+    txtData = sourceData.text
+    soup = BeautifulSoup(txtData, "html.parser")
+
+
 '''
 Main method documentation
 '''
@@ -90,9 +105,10 @@ def main():
 	#Input Grabber here Eventually
 	#Logger here Eventually
 	#Temp for testing
-	result = collateData(['https://bandcamp.com/tag/'],['chiptune'],0)
+	result = collateAlbums(['https://bandcamp.com/tag/'],['chiptune'],0)
 	print("Results:")
 	for res in result:
+                collateAlbum(result)
 		print(res,"\n")
 	print("Done.")
 	return 0
