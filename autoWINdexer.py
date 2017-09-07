@@ -5,6 +5,7 @@
 #
 # Changelog:
 # 0.1 - 08/05/17 -- Initial Creation
+# 0.2 - 09/06/17 -- Noting that I got this working for scraping new releases, etc and the whole album tear apart
 #
 #
 # The AutoWINdexer is a script whose purpose is to scrape multiple musical services and
@@ -19,6 +20,7 @@
 
 from bs4 import BeautifulSoup
 import requests
+import json
 
 #Static Variables
 
@@ -145,11 +147,14 @@ def main():
     #Temp for testing
     result = collateAlbums(['https://bandcamp.com/tag/'],['chiptune'],0)
     print("Results:")
+    diveResult = {}
     for res in result:
-        #collateAlbum(result)
-        print(res,"\n")
-    print("Testing Album Dive")
-    collateAlbum(result[0],['tracks','artist','release','tags'])
+        diveResult[res] = collateAlbum(res, ['tracks','artist','release','tags'])
+    #print("Testing Album Dive")
+    #collateAlbum(result[0],['tracks','artist','release','tags'])
+    #print(diveResult)
+    with open('albumDive.json', 'w') as outfile:
+        json.dump(diveResult, outfile)
     print("Done.")
     return 0
 
