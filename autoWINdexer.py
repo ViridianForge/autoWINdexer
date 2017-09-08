@@ -45,9 +45,30 @@ dataLoc = {
 }
 
 #Functions
+def collateRelatedTags(dataLocs, relatedTags, queries):
+    """
+    Function that pulls together all the related queries from
+    a list of primary queries for analysis.
+    Specific to Bandcamp
+    """
+    #Begin by querying the main location for target URLs
+    for url in dataLocs:
+        for query in queries:
+            sourceData = requests.get(url + query + '?page=1&sort_field=pop')
+            #Load the target URL's text data
+            txData = sourceData.text
+            soup = BeautifulSoup(txData,"html.parser")
+
+            rTags = soup.find_all("a", class_="related_tag")
+            #Recursively scan down related tags
+            for tag in rTags:
+                if not tag in relatedTags:
+                    relatedTags.append(tag.text)
+
+    return relatedTags
 
 #Main driver here
-def collateAlbums(dataLocs, queries, options):
+def collateAlbums(dataLocs, albumURLs, queries, depth):
     """
     Function that pulls together all the data from a query
     
@@ -62,9 +83,8 @@ def collateAlbums(dataLocs, queries, options):
     """
 
     for url in dataLocs:
-        albumURLs = []
         for query in queries:
-            relatedTags = []
+            print(query)
             curPageURLs = []
             for page in range(1,10):
                 #Begin by querying the main location for target URLs
@@ -75,13 +95,21 @@ def collateAlbums(dataLocs, queries, options):
                 #Grab what we need
                 if page==1:
                     rTags = soup.find_all("a", class_="related_tag")
-                    print("Printing current Related Tags!")
-                    for tag in rTags:
-                        print(tag.text,"\n")
-                        relatedTags.append(tag.text)
+                    #Recursively scan down related tags
+                    if depth >=1:
+                        tags = []
+                        for tag in rTags:
+                            tags.append(tag.text)
+                        collateAlbums(dataLocs, albumURLs, tags, depth -1)
+                
                 albumElems = soup.find_all("li", class_=["item", "item_end"])
+                
+                #Todo - can probably make this a list comprehension
+                #Add all album URLs not already added
                 for album in albumElems:
-                    albumURLs.append(album.find("a").get("href"))
+                    albumURL = album.find("a").get("href")
+                    if not albumURL in albumURLs:
+                        albumURLs.append(album.find("a").get("href"))
     #Return the awesome stuff
     return albumURLs
 
@@ -110,8 +138,9 @@ def collateAlbum(albumURL, fields):
             curTrack['number'] = track.find("div", class_=["track_number"]).text
             curTrack['name'] = track.find("span", itemprop=["name"]).text
             curTrack['lyrics'] = ''
-            duration = track.find("span", class_=["time"]).text
-            curTrack['duration'] = duration.strip()
+            if track.find("span", class_=["time"]):
+                duration = track.find("span", class_=["time"]).text
+                curTrack['duration'] = duration.strip()
             trackData.append(curTrack)
         
         albumData['tracks'] = trackData
@@ -119,12 +148,14 @@ def collateAlbum(albumURL, fields):
     if "artist" in fields:
         #Pull artist data here
         artistData = soup.find("span", itemprop=["byArtist"])
-        albumData['artist'] = artistData.find("a").text
+        if artistData.find("a").text:
+            albumData['artist'] = artistData.find("a").text
 
     if "release" in fields:
         #Pull release date here
         releaseDate = soup.find('meta',itemprop=['datePublished'])
-        albumData['release']=releaseDate['content']
+        if releaseDate['content']:
+            albumData['release']=releaseDate['content']
 
     if "tags" in fields:
         #Pull album tags here
@@ -134,7 +165,6 @@ def collateAlbum(albumURL, fields):
             tags.append(tag.text)
         albumData['tags'] = tags
 
-    print(albumData)
     return albumData
 
 
@@ -144,15 +174,17 @@ Main method documentation
 def main():
     #Input Grabber here Eventually
     #Logger here Eventually
-    #Temp for testing
-    result = collateAlbums(['https://bandcamp.com/tag/'],['chiptune'],0)
-    print("Results:")
+    collatedTags = collateRelatedTags(['https://bandcamp.com/tag/'],[],['chiptune','vgm','nerdcore','synthwave'])
+    print('Number of potential related tags found: ' + str(len(collatedTags)))
+    with open('relatedTags.txt', 'w') as tagfile:
+        for tag in collatedTags:
+            tagfile.write(tag + '\n')
+    result = collateAlbums(['https://bandcamp.com/tag/'],[],['chiptune','vgm','nerdcore','synthwave','gameboy','lsdj'],0)
     diveResult = {}
+    print("Number of Albums Found: " + str(len(result)))
     for res in result:
         diveResult[res] = collateAlbum(res, ['tracks','artist','release','tags'])
-    #print("Testing Album Dive")
-    #collateAlbum(result[0],['tracks','artist','release','tags'])
-    #print(diveResult)
+    #Save the results to json file
     with open('albumDive.json', 'w') as outfile:
         json.dump(diveResult, outfile)
     print("Done.")
