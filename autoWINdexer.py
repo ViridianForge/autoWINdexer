@@ -21,6 +21,8 @@
 from bs4 import BeautifulSoup
 import requests
 import json
+import argparse
+import logging
 
 #Static Variables
 
@@ -36,13 +38,8 @@ import json
 #bcTagsQ -- Full lists of tags and locations on Bandcamp
 # SOUNDCLOUD
 # TODO
-
-dataLoc = {
-    'bcFullArts': 'https://bandcamp.com/artist_index',
-    'bcSearchQ': 'https://bandcamp.com/search',
-    'bcTagQ': 'https://bandcamp.com/tag/',
-    'bcTagsQ': 'https://bandcamp.com/tags'
-}
+# Split controls into their own script
+# This file should only be for BC_related scraping tools
 
 #Functions
 def collateRelatedTags(dataLocs, relatedTags, queries):
@@ -84,7 +81,6 @@ def collateAlbums(dataLocs, albumURLs, queries, depth):
 
     for url in dataLocs:
         for query in queries:
-            print(query)
             curPageURLs = []
             for page in range(1,10):
                 #Begin by querying the main location for target URLs
@@ -112,6 +108,17 @@ def collateAlbums(dataLocs, albumURLs, queries, depth):
                         albumURLs.append(album.find("a").get("href"))
     #Return the awesome stuff
     return albumURLs
+
+def get_bc_discography(urls):
+    """
+    Function to return the total list of albums
+    and tracks from an artist's bandcamp webpage
+
+    Parameters:
+        urls - list of URLs to scrape
+    """
+
+    return []
 
 def collateAlbum(albumURL, fields):
     """
@@ -168,28 +175,89 @@ def collateAlbum(albumURL, fields):
     return albumData
 
 
-'''
-Main method documentation
-'''
-def main():
-    #Input Grabber here Eventually
+def main(stype, sterms, url, outputs, depth=None):
+    '''
+    Generic main method
+    Purpose is to select the specific mode of operation using
+    input and then run a scrape in that fashion
+
+    Parameters
+    __________
+    stype - String describing the specific type of search being done
+    sterms - List of strings describing tags or terms to be used in the search
+    urls - List of URLs to be searched on
+    outputs - List of Files to output to
+    depth - Level of recursion if set
+    '''
+    #Initialize Defaults
+    if depth is None:
+        depth=0
+
     #Logger here Eventually
-    collatedTags = collateRelatedTags(['https://bandcamp.com/tag/'],[],['chiptune','vgm','nerdcore','synthwave'])
-    print('Number of potential related tags found: ' + str(len(collatedTags)))
-    with open('relatedTags.txt', 'w') as tagfile:
-        for tag in collatedTags:
-            tagfile.write(tag + '\n')
-    result = collateAlbums(['https://bandcamp.com/tag/'],[],['chiptune','vgm','nerdcore','synthwave','gameboy','lsdj'],0)
-    diveResult = {}
-    print("Number of Albums Found: " + str(len(result)))
-    for res in result:
-        diveResult[res] = collateAlbum(res, ['tracks','artist','release','tags'])
+    #TODO - Switch from IfEl ladder to catch all
+    #Explore Tag relationships
+    logging.debug(stype)
+    if stype=='tags':
+        logging.info('Hunting Related Tags')
+        collatedTags = collateRelatedTags([url],[],[sterms])
+        logging.info('Output Tag Data')
+        with open(outputs,'w') as tagfile:
+            for tag in collatedTags:
+                tagfile.write(tag + '\n')
+    #Collect Album Data
+    elif stype=='albums':
+        logging.info('Hunting Album Data')
+        logging.debug(depth)
+        collatedAlbums = collateAlbums([url],[],[sterms],depth)
+        huntResult = {}
+        logging.info('Collecting Output Data')
+        for alb in collatedAlbums:
+            huntResult[alb] = collateAlbum(alb, ['tracks','artist','release','tags'])
+        logging.info('Search returned ' + str(len(collatedAlbums)) + ' unique albums.')
+        logging.info('Outputting Results')
+        with open(outputs, 'w') as outfile:
+            json.dump(huntResult, outfile)
+        logging.info('Results saved to ' + outputs)
+    #Collect Artist Discog Data
+    elif stype=='artistDive':
+        logging.info('Artist Data')
+        collatedDiscog = get_bc_discography(urls,[],sterms)
+    else:
+        logging.debug('Search Style ' + style + ' is not a valid style.')
+
+    logging.info('Done.')
+
+    #collatedTags = collateRelatedTags(['https://bandcamp.com/tag/'],[],['chiptune','vgm','nerdcore','synthwave'])
+    #logging.info('Number of potential related tags found: ' + str(len(collatedTags)))
+    #with open('relatedTags.txt', 'w') as tagfile:
+    #    for tag in collatedTags:
+    #        tagfile.write(tag + '\n')
+    #result = collateAlbums(['https://bandcamp.com/tag/'],[],['chiptune','vgm','nerdcore','synthwave','gameboy','lsdj'],0)
+    #diveResult = {}
+    #print("Number of Albums Found: " + str(len(result))
+    #for res in result:
+    #    diveResult[res] = collateAlbum(res, ['tracks','artist','release','tags'])
     #Save the results to json file
-    with open('albumDive.json', 'w') as outfile:
-        json.dump(diveResult, outfile)
-    print("Done.")
+    #with open('albumDive.json', 'w') as outfile:
+    #    json.dump(diveResult, outfile)
+    #print("Done.")
     return 0
 
 if __name__ == '__main__':
-    main()
+    #Run input grabbing only if someone's running the CLI
+    #Starter version, very discrete, limited options and control
+    parser = argparse.ArgumentParser()
+    parser.add_argument('scantypes', help='The scan to be run.')
+    parser.add_argument('scanterms', help='The term to scan for.')
+    parser.add_argument('urls', help='The URL to scan')
+    parser.add_argument('output', help='The filename to write to.')
+    parser.add_argument('--depth', help='How deep to recurse for recursive scans')
+    parser.add_argument('--log', help='Whether output should be logged to a file')
+    args=parser.parse_args()
+
+    if args.log:
+        logging.basicConfig(filename=args.log, filemode='w', level=logging.INFO)
+
+    #Args parsed, run scan
+    main(args.scantypes, args.scanterms, args.urls, args.output, args.depth)
 
