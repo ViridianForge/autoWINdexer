@@ -21,30 +21,18 @@
 from bs4 import BeautifulSoup
 import requests
 
-#Static Variables
-
-#Default Datalocations
-#This should be overridable by the user - BUT - these
-#are the default locations to scan for Chiptunes=WIN purposes
-#
-#VF's notes:
-# BANDCAMP
-#bcFullArts -- Bandcamp's complete list of all artist *NOT LIMITED TO CHIP
-#bcSearchQ -- Bandcamp's direct search capabilities. Syntax seems to be q?=<search term>
-#bcTargQ -- Bandcamp's tag by tag hunts - the related tags section could be useful here. 
-#bcTagsQ -- Full lists of tags and locations on Bandcamp
-# SOUNDCLOUD
-# TODO
-# Split controls into their own script
-# This file should only be for BC_related scraping tools
-
-#Functions
-def collateRelatedTags(dataLocs, relatedTags, queries):
+def bc_get_related_tags(dataLocs, relatedTags, queries):
     """
-    Function that pulls together all the related queries from
-    a list of primary queries for analysis.
-    Specific to Bandcamp
+    Function that pulls together all the related tags from
+    a list of primary tags for analysis.
+    
+    Parameters:
+    ____________
+    dataLocs - URLS to scan
+    relatedTags - The list of related tags to be assembled
+    queries - The specific tags to search for
     """
+
     #Begin by querying the main location for target URLs
     for url in dataLocs:
         for query in queries:
@@ -61,8 +49,7 @@ def collateRelatedTags(dataLocs, relatedTags, queries):
 
     return relatedTags
 
-#Main driver here
-def collateAlbums(dataLocs, albumURLs, queries, depth):
+def bc_get_genre(dataLocs, albumURLs, queries, depth):
     """
     Function that pulls together all the data from a query
     
@@ -74,6 +61,7 @@ def collateAlbums(dataLocs, albumURLs, queries, depth):
     dataLocs : the Data Locations to query for data
     queries: the queries to run on each dataLocations
     options: any options to modify the queries with
+    depth: how deeply to track down albums from related tags, if at all
     """
 
     for url in dataLocs:
@@ -85,11 +73,11 @@ def collateAlbums(dataLocs, albumURLs, queries, depth):
                 #Load the target URL's text data
                 txData = sourceData.text
                 soup = BeautifulSoup(txData,"html.parser")
-                #Grab what we need
-                if page==1:
+                #Pop down into related tags if we want to
+                if page==1 and depth > 0:
                     rTags = soup.find_all("a", class_="related_tag")
                     #Recursively scan down related tags
-                    if depth >=1:
+                    if depth > 0:
                         tags = []
                         for tag in rTags:
                             tags.append(tag.text)
@@ -106,7 +94,7 @@ def collateAlbums(dataLocs, albumURLs, queries, depth):
     #Return the awesome stuff
     return albumURLs
 
-def get_bc_discography(urls):
+def bc_get_discog(urls):
     """
     Function to return the total list of albums
     and tracks from an artist's bandcamp webpage
@@ -114,10 +102,22 @@ def get_bc_discography(urls):
     Parameters:
         urls - list of URLs to scrape
     """
+    discog = []
 
-    return []
+    for url in urls:
+        sourceData = requests.get(url)
+        txData = sourceData.text
+        soup = BeautifulSoup(txData, "html.parser")
+    
+        discElems = soup.find_all("li", class_=["music-grid-item"])
 
-def collateAlbum(albumURL, fields):
+        for disc in discElems:
+            discURL = url + disc.find("a").get("href")
+            discog.append(discURL)
+
+    return discog
+
+def bc_get_album(albumURL, fields):
     """
     Function that pulls the relevant fields that we care about from an Album's website.
 

@@ -49,7 +49,7 @@ def main(stype, sterms, url, outputs, depth=None):
     logging.debug(stype)
     if stype=='tags':
         logging.info('Hunting Related Tags')
-        collatedTags = bc.collateRelatedTags([url],[],[sterms])
+        collatedTags = bc.bc_get_related_tags([url],[],[sterms])
         logging.info('Output Tag Data')
         with open(outputs,'w') as tagfile:
             for tag in collatedTags:
@@ -58,20 +58,24 @@ def main(stype, sterms, url, outputs, depth=None):
     elif stype=='albums':
         logging.info('Hunting Album Data')
         logging.debug(depth)
-        collatedAlbums = bc.collateAlbums([url],[],[sterms],depth)
+        collatedAlbums = bc.bc_get_genre([url],[],[sterms],depth)
         huntResult = {}
         logging.info('Collecting Output Data')
         for alb in collatedAlbums:
-            huntResult[alb] = bc.collateAlbum(alb, ['tracks','artist','release','tags'])
+            huntResult[alb] = bc.bc_get_album(alb, ['tracks','artist','release','tags'])
         logging.info('Search returned ' + str(len(collatedAlbums)) + ' unique albums.')
         logging.info('Outputting Results')
         with open(outputs, 'w') as outfile:
             json.dump(huntResult, outfile)
         logging.info('Results saved to ' + outputs)
     #Collect Artist Discog Data
-    elif stype=='artistDive':
-        logging.info('Artist Data')
-        collatedDiscog = bc.get_bc_discography(urls,[],sterms)
+    elif stype=='discog':
+        logging.info('Hunting Artist Discography')
+        collatedDiscog = bc.bc_get_discog([url])
+        logging.info('Outputting Discog Data')
+        with open(outputs, 'w') as outfile:
+            for disc in collatedDiscog:
+                outfile.write(disc + '\n')
     else:
         logging.debug('Search Style ' + style + ' is not a valid style.')
 
