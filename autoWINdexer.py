@@ -25,7 +25,7 @@ from lib import bc
 
 #Static Variables
 
-def main(stype, sterms, url, outputs, depth=None):
+def runScrape(site, stype, sterm, output, depth=None):
     '''
     Generic main method
     Purpose is to select the specific mode of operation using
@@ -49,7 +49,7 @@ def main(stype, sterms, url, outputs, depth=None):
     logging.debug(stype)
     if stype=='tags':
         logging.info('Hunting Related Tags')
-        collatedTags = bc.bc_get_related_tags([url],[],[sterms])
+        collatedTags = bc.bc_get_related_tags([site],[],[sterms])
         logging.info('Output Tag Data')
         with open(outputs,'w') as tagfile:
             for tag in collatedTags:
@@ -58,7 +58,7 @@ def main(stype, sterms, url, outputs, depth=None):
     elif stype=='albums':
         logging.info('Hunting Album Data')
         logging.debug(depth)
-        collatedAlbums = bc.bc_get_genre([url],[],[sterms],depth)
+        collatedAlbums = bc.bc_get_genre([site],[],[sterms],depth)
         huntResult = {}
         logging.info('Collecting Output Data')
         for alb in collatedAlbums:
@@ -71,7 +71,7 @@ def main(stype, sterms, url, outputs, depth=None):
     #Collect Artist Discog Data
     elif stype=='discog':
         logging.info('Hunting Artist Discography')
-        collatedDiscog = bc.bc_get_discog([url])
+        collatedDiscog = bc.bc_get_discog([site])
         logging.info('Outputting Discog Data')
         with open(outputs, 'w') as outfile:
             for disc in collatedDiscog:
@@ -87,17 +87,36 @@ if __name__ == '__main__':
     #Run input grabbing only if someone's running the CLI
     #Starter version, very discrete, limited options and control
     parser = argparse.ArgumentParser()
-    parser.add_argument('scantypes', help='The scan to be run.')
-    parser.add_argument('scanterms', help='The term to scan for.')
-    parser.add_argument('urls', help='The URL to scan')
-    parser.add_argument('output', help='The filename to write to.')
+    parser.add_argument('--scrapeSite', help='The scan to be run.')
+    parser.add_argument('--scrapeType', help='The term to scan for.')
+    parser.add_argument('--scrapeTerm', help='The URL to scan')
+    parser.add_argument('--outFile', help='The filename to write to.')
+    parser.add_argument('--bulkScrape', help='A csv file containing searches to run')
     parser.add_argument('--depth', help='How deep to recurse for recursive scans')
     parser.add_argument('--log', help='Whether output should be logged to a file')
     args=parser.parse_args()
 
+    #Activate Logging if Noted
     if args.log:
         logging.basicConfig(filename=args.log, filemode='w', level=logging.INFO)
+    
+    if args.bulkScrape:
+        try:
+            with open(args.searchFile) as inFile:
+                for line in inFile:
+                    scrapeDefs = line.split(',')
+                    scrapeSite = scrapeTerms[0]
+                    scrapeType = searchTerms[1]
+                    scrapeTerms = searchTerms[2].split(' ')
+                    outFile = searchTerms[3]
+                    runScrape(scrapeSite, scrapeType, scrapeTerms, outFile)
+        except:
+            #TODO flesh out common exceptions and give decent feedback
+            logging.exception("An invalid thing happened.")
 
     #Args parsed, run scan
-    main(args.scantypes, args.scanterms, args.urls, args.output, args.depth)
+    if args.scrapeSite and args.scrapeType and args.scrapeTerm and args.outFile:
+        runScrape(args.scrapeSite, args.scrapeType, args.scrapeTerm, args.outFile, args.depth)
+    else
+        logging.exception("Invalid parameters passed.")
 
