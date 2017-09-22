@@ -21,7 +21,7 @@
 from bs4 import BeautifulSoup
 import requests
 
-def bc_get_related_tags(dataLocs, relatedTags, queries):
+def bc_get_related_tags(dataLocs, queries):
     """
     Function that pulls together all the related tags from
     a list of primary tags for analysis.
@@ -29,9 +29,10 @@ def bc_get_related_tags(dataLocs, relatedTags, queries):
     Parameters:
     ____________
     dataLocs - URLS to scan
-    relatedTags - The list of related tags to be assembled
     queries - The specific tags to search for
     """
+
+    relatedTags = []
 
     #Begin by querying the main location for target URLs
     for url in dataLocs:
@@ -49,7 +50,7 @@ def bc_get_related_tags(dataLocs, relatedTags, queries):
 
     return relatedTags
 
-def bc_get_genre(dataLocs, albumURLs, queries, depth):
+def bc_get_genre(dataLocs, queries, sort, albumURLs, depth):
     """
     Function that pulls together all the data from a query
     
@@ -60,7 +61,8 @@ def bc_get_genre(dataLocs, albumURLs, queries, depth):
     ----------
     dataLocs : the Data Locations to query for data
     queries: the queries to run on each dataLocations
-    options: any options to modify the queries with
+    sort: the sort field to use - probably 'pop' or 'date'
+    albumURLs - The list of albumURLs to be assembled
     depth: how deeply to track down albums from related tags, if at all
     """
 
@@ -69,7 +71,7 @@ def bc_get_genre(dataLocs, albumURLs, queries, depth):
             curPageURLs = []
             for page in range(1,10):
                 #Begin by querying the main location for target URLs
-                sourceData = requests.get(url + query + '?page='+ str(page) + '&sort_field=pop')
+                sourceData = requests.get(url + query + '?page='+ str(page) + '&sort_field=' + sort)
                 #Load the target URL's text data
                 txData = sourceData.text
                 soup = BeautifulSoup(txData,"html.parser")

@@ -49,7 +49,7 @@ def runScrape(site, stype, sterm, output, depth=None):
     logging.debug(stype)
     if stype=='tags':
         logging.info('Hunting Related Tags')
-        collatedTags = bc.bc_get_related_tags([site],[],[sterms])
+        collatedTags = bc.bc_get_related_tags([site],[sterms])
         logging.info('Output Tag Data')
         with open(outputs,'w') as tagfile:
             for tag in collatedTags:
@@ -58,7 +58,7 @@ def runScrape(site, stype, sterm, output, depth=None):
     elif stype=='albums':
         logging.info('Hunting Album Data')
         logging.debug(depth)
-        collatedAlbums = bc.bc_get_genre([site],[],[sterms],depth)
+        collatedAlbums = bc.bc_get_genre([site],[sterms],'pop',[],depth)
         huntResult = {}
         logging.info('Collecting Output Data')
         for alb in collatedAlbums:
@@ -87,13 +87,17 @@ if __name__ == '__main__':
     #Run input grabbing only if someone's running the CLI
     #Starter version, very discrete, limited options and control
     parser = argparse.ArgumentParser()
-    parser.add_argument('--scrapeSite', help='The scan to be run.')
-    parser.add_argument('--scrapeType', help='The term to scan for.')
-    parser.add_argument('--scrapeTerm', help='The URL to scan')
-    parser.add_argument('--outFile', help='The filename to write to.')
-    parser.add_argument('--bulkScrape', help='A csv file containing searches to run')
-    parser.add_argument('--depth', help='How deep to recurse for recursive scans')
-    parser.add_argument('--log', help='Whether output should be logged to a file')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-b','--bulk', type=str, help='CSV File containing a list of searches to run')
+    group.add_argument('-s','--scrape', type=str, help='Scrape Specification to run directly')
+    #TODO - Figure out how to make this specification of a search mutually exclusive to the above group
+    parser.add_argument('-u','--url', type=str, help='The URL to scrape.')
+    parser.add_argument('-t','--type', type=str, help='The type of scrape to run.')
+    parser.add_argument('-q','--query', type=str, help='The query to pass to the scrape.')
+    parser.add_argument('-o','--outFile', type=str, help='The filename to write to.')
+    parser.add_argument('-d','--depth', type=int, help='How deep to recurse for recursive scans')
+    #Log can stand alone
+    parser.add_argument('-l','--log', help='Whether output should be logged to a file', action="store_true")
     args=parser.parse_args()
 
     #Activate Logging if Noted
@@ -117,6 +121,6 @@ if __name__ == '__main__':
     #Args parsed, run scan
     if args.scrapeSite and args.scrapeType and args.scrapeTerm and args.outFile:
         runScrape(args.scrapeSite, args.scrapeType, args.scrapeTerm, args.outFile, args.depth)
-    else
+    else:
         logging.exception("Invalid parameters passed.")
 
