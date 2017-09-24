@@ -21,11 +21,10 @@
 import json
 import argparse
 import logging
+import csv
 from lib import bc
 
-#Static Variables
-
-def runScrape(site, stype, sterm, output, depth=None):
+def run_scrape(site, stype, sterm, output, depth=None):
     '''
     Generic main method
     Purpose is to select the specific mode of operation using
@@ -83,44 +82,93 @@ def runScrape(site, stype, sterm, output, depth=None):
 
     return 0
 
+def bulk_proc(args):
+    """
+    Function that processes a bulk scrape command.
+    
+    args - the args passed from the calling parser.
+    Looking for file or string. These are mutually exclusive args
+    so its either one or the other.
+    """
+    scrapeQueue = []
+    if args.file:
+        with open(args.file, 'rb') as f:
+            reader = csv.reader(f)
+            scrapeQueue = list(reader)
+    elif args.string:
+        for line in args.string.split('|'):
+            scrapeQueue.append(line.split(','))
+    else:
+        print("Bulk processing requires either a file or string containing scrapes to run.")
+        logging.exception('No valid arguments passed to bulk processer.')
+
+    for scrape in scrapeQueue:
+        #Test for valid input
+        if valid_scrape(scrape):
+            run_scrape(scrape)
+    return 0
+
+def man_proc(args):
+    if valid_scrape([args.url, args.type, args.query, args.file, args.depth]):
+        run_scrape(args.url, args.type, args.query, args.file, args.depth)
+    else:
+        print('Invalid arguments passed to manual scrape processor.')
+        logging.exception('Invalid arguments passed to manual scrape processor.')
+
+    return 0
+
+def valid_scrape(scrape_spec):
+    valid = False
+
+    return validity
+
 if __name__ == '__main__':
     #Run input grabbing only if someone's running the CLI
     #Starter version, very discrete, limited options and control
     parser = argparse.ArgumentParser()
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('-b','--bulk', type=str, help='CSV File containing a list of searches to run')
-    group.add_argument('-s','--scrape', type=str, help='Scrape Specification to run directly')
-    #TODO - Figure out how to make this specification of a search mutually exclusive to the above group
-    parser.add_argument('-u','--url', type=str, help='The URL to scrape.')
-    parser.add_argument('-t','--type', type=str, help='The type of scrape to run.')
-    parser.add_argument('-q','--query', type=str, help='The query to pass to the scrape.')
-    parser.add_argument('-o','--outFile', type=str, help='The filename to write to.')
-    parser.add_argument('-d','--depth', type=int, help='How deep to recurse for recursive scans')
     #Log can stand alone
     parser.add_argument('-l','--log', help='Whether output should be logged to a file', action="store_true")
+    #Subparser for Bulk Processing Arguments
+    subparsers = parser.add_subparsers(title='Scrape Specification modes', description='How to call specific modes of scraping', help='Subcommand')
+    bulk_parser = subparsers.add_parser('bulk', help='Mass Scrape Setup')
+    bulk_group = bulk_parser.add_mutually_exclusive_group()
+    bulk_group.add_argument('-f','--file', type=str, help='CSV File containing a list of scrapes to run')
+    bulk_group.add_argument('-s','--string', type=str, help='String of Bulk Scrapes to Run')
+    bulk_parser.set_default(func=bulk_proc)
+    #TODO - Figure out how to make this specification of a search mutually exclusive to the above group
+    #Subparser for Manual Settings
+    manual_parser = subparsers.add_parser('manual', help='Direct Scrape Setup')
+    manual_parser.add_argument('url', type=str, help='The URL to scrape.')
+    manual_parser.add_argument('-t','--type', type=str, help='The type of scrape to run.')
+    manual_parser.add_argument('-q','--query', type=str, help='The query to pass to the scrape.')
+    manual_parser.add_argument('-f','--file', type=str, help='The filename to write to.')
+    manual_parser.add_argument('-d','--depth', type=int, choices=[0,1,2], help='Number of recursive scans to run for a recursive scrape.')
+    manual_parser.set_defaults(func=man_proc)
     args=parser.parse_args()
 
     #Activate Logging if Noted
     if args.log:
         logging.basicConfig(filename=args.log, filemode='w', level=logging.INFO)
     
-    if args.bulkScrape:
-        try:
-            with open(args.searchFile) as inFile:
-                for line in inFile:
-                    scrapeDefs = line.split(',')
-                    scrapeSite = scrapeTerms[0]
-                    scrapeType = searchTerms[1]
-                    scrapeTerms = searchTerms[2].split(' ')
-                    outFile = searchTerms[3]
-                    runScrape(scrapeSite, scrapeType, scrapeTerms, outFile)
-        except:
-            #TODO flesh out common exceptions and give decent feedback
-            logging.exception("An invalid thing happened.")
+    args.func(args)
+
+    #if args.bulkScrape:
+    #    try:
+    #        with open(args.searchFile) as inFile:
+    #            for line in inFile:
+    #                scrapeDefs = line.split(',')
+    #                scrapeSite = scrapeTerms[0]
+    #                scrapeType = searchTerms[1]
+    #                scrapeTerms = searchTerms[2].split(' ')
+    #                outFile = searchTerms[3]
+    #                runScrape(scrapeSite, scrapeType, scrapeTerms, outFile)
+    #    except:
+    #        #TODO flesh out common exceptions and give decent feedback
+    #        logging.exception("An invalid thing happened.")
 
     #Args parsed, run scan
-    if args.scrapeSite and args.scrapeType and args.scrapeTerm and args.outFile:
-        runScrape(args.scrapeSite, args.scrapeType, args.scrapeTerm, args.outFile, args.depth)
-    else:
-        logging.exception("Invalid parameters passed.")
+    #if args.scrapeSite and args.scrapeType and args.scrapeTerm and args.outFile:
+    #    runScrape(args.scrapeSite, args.scrapeType, args.scrapeTerm, args.outFile, args.depth)
+    #else:
+    #    logging.exception("Invalid parameters passed.")
 
