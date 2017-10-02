@@ -35,7 +35,7 @@ def run_scrape(site, stype, sterm, output, depth=None):
     stype - String describing the specific type of search being done
     sterms - List of strings describing tags or terms to be used in the search
     urls - List of URLs to be searched on
-    outputs - List of Files to output to
+    output - List of Files to output to
     depth - Level of recursion if set
     '''
     #Initialize Defaults
@@ -48,35 +48,37 @@ def run_scrape(site, stype, sterm, output, depth=None):
     logging.debug(stype)
     if stype=='tags':
         logging.info('Hunting Related Tags')
-        collatedTags = bc.bc_get_related_tags([site],[sterms])
+        collatedTags = bc.bc_get_related_tags([site],[sterm])
         logging.info('Output Tag Data')
-        with open(outputs,'w') as tagfile:
+        with open(output,'w') as tagfile:
             for tag in collatedTags:
                 tagfile.write(tag + '\n')
+        logging.info('Results saved to ' + output)
     #Collect Album Data
     elif stype=='albums':
         logging.info('Hunting Album Data')
         logging.debug(depth)
-        collatedAlbums = bc.bc_get_genre([site],[sterms],'pop',[],depth)
+        collatedAlbums = bc.bc_get_genre([site],[sterm],'pop',[],depth)
         huntResult = {}
         logging.info('Collecting Output Data')
         for alb in collatedAlbums:
             huntResult[alb] = bc.bc_get_album(alb, ['tracks','artist','release','tags'])
         logging.info('Search returned ' + str(len(collatedAlbums)) + ' unique albums.')
         logging.info('Outputting Results')
-        with open(outputs, 'w') as outfile:
+        with open(output, 'w') as outfile:
             json.dump(huntResult, outfile)
-        logging.info('Results saved to ' + outputs)
+        logging.info('Results saved to ' + output)
     #Collect Artist Discog Data
     elif stype=='discog':
         logging.info('Hunting Artist Discography')
         collatedDiscog = bc.bc_get_discog([site])
         logging.info('Outputting Discog Data')
-        with open(outputs, 'w') as outfile:
+        with open(output, 'w') as outfile:
             for disc in collatedDiscog:
                 outfile.write(disc + '\n')
+        logging.info('Results saved to ' + output)
     else:
-        logging.debug('Search Style ' + style + ' is not a valid style.')
+        logging.debug('Search Style ' + stype + ' is not a valid style.')
 
     logging.info('Done.')
 
@@ -118,7 +120,7 @@ def man_proc(args):
     return 0
 
 def valid_scrape(scrape_spec):
-    valid = False
+    validity = True
 
     return validity
 
@@ -134,7 +136,7 @@ if __name__ == '__main__':
     bulk_group = bulk_parser.add_mutually_exclusive_group()
     bulk_group.add_argument('-f','--file', type=str, help='CSV File containing a list of scrapes to run')
     bulk_group.add_argument('-s','--string', type=str, help='String of Bulk Scrapes to Run')
-    bulk_parser.set_default(func=bulk_proc)
+    bulk_parser.set_defaults(func=bulk_proc)
     #TODO - Figure out how to make this specification of a search mutually exclusive to the above group
     #Subparser for Manual Settings
     manual_parser = subparsers.add_parser('manual', help='Direct Scrape Setup')
