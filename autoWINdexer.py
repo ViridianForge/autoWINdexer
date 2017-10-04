@@ -1,12 +1,6 @@
 #
 # AutoWINdexer.py
 # Author: Wayne "ViridianForge" Manselle
-# Version 0.1
-#
-# Changelog:
-# 0.1 - 08/05/17 -- Initial Creation
-# 0.2 - 09/06/17 -- Noting that I got this working for scraping new releases, etc and the whole album tear apart
-#
 #
 # The AutoWINdexer is a script whose purpose is to scrape multiple musical services and
 # collect data on the Genres of music that Chiptunes = WIN gives a shit about.
@@ -92,9 +86,10 @@ def bulk_proc(args):
     Looking for file or string. These are mutually exclusive args
     so its either one or the other.
     """
+    scrapeCount = 0
     scrapeQueue = []
     if args.file:
-        with open(args.file, 'rb') as f:
+        with open(args.file, 'r') as f:
             reader = csv.reader(f)
             scrapeQueue = list(reader)
     elif args.string:
@@ -106,8 +101,12 @@ def bulk_proc(args):
 
     for scrape in scrapeQueue:
         #Test for valid input
+        print("Now processing scrape ",scrapeCount)
+        scrapeCount=scrapeCount+1
         if valid_scrape(scrape):
-            run_scrape(scrape)
+            print("Scrape params: ",scrape[0],scrape[1],scrape[2],scrape[3],scrape[4])
+            run_scrape(scrape[0],scrape[1],scrape[2],scrape[3],int(scrape[4]))
+    print("Bulk Scraping Complete.")
     return 0
 
 def man_proc(args):
@@ -120,6 +119,11 @@ def man_proc(args):
     return 0
 
 def valid_scrape(scrape_spec):
+    """
+    Function that tests the validity of passed input.
+
+    scrape_spec - the scrape specifications passed in to be tested for validity
+    """
     validity = True
 
     return validity
