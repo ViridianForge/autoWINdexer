@@ -15,6 +15,7 @@
 import json
 import argparse
 import logging
+import validators
 import csv
 from lib import bc
 
@@ -124,6 +125,24 @@ def valid_scrape(scrape_spec):
 
     scrape_spec - the scrape specifications passed in to be tested for validity
     """
+    #First arg should be URL
+    #if valid url
+    # continue
+    #else
+    # throw invalid url exception
+    #Second arg should be string
+    #Third arg should be string
+    #Fourth arg should be a writeable file
+    #if writable file
+    # continue
+    #else
+    # throw file permission exception
+    #Fifth arg should be numeric
+    #if numeric
+    # continue
+    #else
+    # throw not a number exception
+    #if url(scrape_spec[0]) and True and True and True and validators.between(scrape[4],0,2)
     validity = True
 
     return validity
@@ -157,24 +176,3 @@ if __name__ == '__main__':
         logging.basicConfig(filename=args.log, filemode='w', level=logging.INFO)
     
     args.func(args)
-
-    #if args.bulkScrape:
-    #    try:
-    #        with open(args.searchFile) as inFile:
-    #            for line in inFile:
-    #                scrapeDefs = line.split(',')
-    #                scrapeSite = scrapeTerms[0]
-    #                scrapeType = searchTerms[1]
-    #                scrapeTerms = searchTerms[2].split(' ')
-    #                outFile = searchTerms[3]
-    #                runScrape(scrapeSite, scrapeType, scrapeTerms, outFile)
-    #    except:
-    #        #TODO flesh out common exceptions and give decent feedback
-    #        logging.exception("An invalid thing happened.")
-
-    #Args parsed, run scan
-    #if args.scrapeSite and args.scrapeType and args.scrapeTerm and args.outFile:
-    #    runScrape(args.scrapeSite, args.scrapeType, args.scrapeTerm, args.outFile, args.depth)
-    #else:
-    #    logging.exception("Invalid parameters passed.")
-
